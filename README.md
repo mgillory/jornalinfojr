@@ -1,47 +1,60 @@
 # jornalinfojr
 A web-based application using php and bootstrap
-## Features of this version (v1)
-The folder structure is divided according to **MVC design pattern**, as explained by Gui (@guilherme-gm). This initial version consists of 5 files:
-- **config/config.php**: Sets all the default configuration of the web application, such as title, language supported, routes, among others.
-- **lib/config.php**: It's the class that actually implements the logic to create the array specified by **config/config.php**.
-- **lib/init.php**: The middleman used by **index.php** to initialize all the *'.php'* files.  
-- **lib/router.php**: The core idea behind this initial version. This class handles the URL as seen below:
+## Features of this version (v2)
+This version has already began to craft the Controller and View parts of MVC :metal:. It also has a basic multiple language support system.
+
+The following files were added:
+- **controller/pagecontroller.php**: Control modes *index* and *view* of pages.
+- **lang/en.php**: English translation.
+- **lang/pt_br.php**: Brazilian Portuguese translation.
+- **lib/app.php**: Responsible for running the application as a whole. Worth mentioning the *function run()*, which as the name suggests, runs the entire application.
 ```php
-    function __construct() {
-        // load defaults
-        
-        $routes = Config::get('routes');
-        
-        $this->route = Config::get('default_route');
-        $this->method_prefix = isset($routes[$this->route]) ? $routes[$this->route] : ''; 
-        $this->controller = Config::get('default_controller');
-        $this->action = Config::get('default_action');
-        $this->language = Config::get('default_language');
-        
-        // Handles $_GET['route']
-        $route_get = filter_input(INPUT_GET, 'route', FILTER_SANITIZE_STRING);
-        if($route_get != FALSE && isset($routes[$route_get])) {
-            $this->route = $route_get;
-            $this->method_prefix = $routes[$route_get];
-        }
-        
-        // Handles $_GET['module'] which is the controller
-        $module_get = filter_input(INPUT_GET, 'module', FILTER_SANITIZE_STRING);
-        if($module_get != FALSE) {
-            $this->controller = strtolower($module_get);
-        }
-        
-        // Handles $_GET['action']
-        $action_get = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_STRING);
-        if($action_get != FALSE) {
-            $this->action = strtolower($action_get);
-        }
-        
-        // Handles $_GET['lang']
-        $lang_get = filter_input(INPUT_GET, 'lang', FILTER_SANITIZE_STRING);
-        if($lang_get != FALSE && in_array($lang_get, Config::get('languages'))) {
-            $this->language = $lang_get;
-        }
+    public static function run() {
+       self::$router = new Router();
+       Lang::load(self::$router->getLanguage());
+       
+       // String manipulation to get the desired controller paths
+       $controller_class = 'Controller\\' . ucfirst(self::$router->getController()) . 'Controller';
+       $controller_method = strtolower(self::$router->getMethod_prefix() . self::$router->getAction());
+       
+       // Instantiate a controller object and calls the specified controller method 
+       $controller = new $controller_class();
+       if(method_exists($controller, $controller_method)) {
+           $view_path = $controller->$controller_method();
+           $view_object = new View($controller->getData(), $view_path);
+           
+           // HTML data of the given view, later used by layout (ex: index | view)
+           $content = $view_object->render();
+       } else {
+           throw new \Exception("Method {$controller_method} of class {$controller_class} does not exist!" . "</br>");
+       }
+       
+       $layout = self::$router->getRoute();
+       $layout_path = VIEW_PATH . DS . $layout . '.php';
+       $layout_view_object = new View(compact('content'), $layout_path);
+       // Where the magic happens :) (ex: default | admin_)
+       echo $layout_view_object->render();
     }
 ```
-- **index.php**: The first file that the browser opens up. It just contains a few definitions and instantializes a *Router* object in order to perform a visual check that everything is ok.
+- **lib/controller.php**: Default *controller* container.
+- **lib/lang.php**: Simple *load* and *get* language class.
+- **lib/view.php**: Default *view* container. Worth mentioning the *function render()*, which uses the concept of [output buffering](https://stackoverflow.com/questions/2832010/what-is-output-buffering) to render the HTML.
+```php
+    public function render() {
+        $data = $this->data;
+        ob_start();
+        include $this->path;
+        $content = ob_get_clean();
+        
+        return $content;
+    }
+```
+- **view/default.php**: Default HTML structure.
+- **view/page/index.php**: Page *index* content.
+- **view/page/view.php**: Page *view* content.
+## Overview of the application's basic data flow
+- index.php
+  - app.php:run()
+    - router.php
+      - *some*controller.php
+         - *some*view.php

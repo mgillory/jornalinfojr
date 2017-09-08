@@ -1,6 +1,6 @@
 # jornalinfojr
 A web-based application using php and bootstrap
-## Features of this version (v1-router)
+## Features of this version (v1)
 The folder structure is divided according to **MVC design pattern**, as explained by Gui (@guilherme-gm). This initial version consists of 5 files:
 - **config/config.php**: Sets all the default configuration of the web application, such as title, language supported, routes, among others.
 - **lib/config.php**: It's the class that actually implements the logic to create the array specified by **config/config.php**.

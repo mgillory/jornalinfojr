@@ -90,5 +90,4 @@ class Router {
             $this->language = $lang_get;
         }
     }
-
 }
